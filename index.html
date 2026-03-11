@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>사진 관리 앱</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2d5016" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="사진관리" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #f0ebe3;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    #app {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* 헤더 */
+    .header {
+      background: linear-gradient(135deg, #2d5016 0%, #4a7c26 100%);
+      padding: env(safe-area-inset-top, 50px) 28px 28px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .header-sub { font-size: 11px; letter-spacing: 3px; opacity: 0.7; margin-bottom: 6px; text-transform: uppercase; }
+    .header-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .header-desc { font-size: 13px; opacity: 0.8; }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 20px;
+      color: #fff;
+      padding: 7px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 14px;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 페이지 콘텐츠 */
+    .page-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 카테고리 그리드 */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .cat-item {
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      aspect-ratio: 1;
+      position: relative;
+      border: none;
+      padding: 0;
+      transition: transform 0.15s;
+    }
+    .cat-item:active { transform: scale(0.96); }
+    .cat-item.empty {
+      background: #f2f2f2;
+      border: 2px solid #ddd;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .cat-item.has-photos {
+      background: #fff0f0;
+      border: 2px solid #e74c3c;
+      box-shadow: 0 4px 14px rgba(231,76,60,0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .cat-item.has-thumb {
+      border: 2px solid #e74c3c;
+      box-shadow: 0 4px 14px rgba(231,76,60,0.2);
+    }
+    .cat-num { font-size: 20px; font-weight: 700; }
+    .cat-item.empty .cat-num { color: #bbb; }
+    .cat-item.has-photos .cat-num { color: #c0392b; }
+    .cat-label { font-size: 10px; }
+    .cat-item.empty .cat-label { color: #999; }
+    .cat-item.has-photos .cat-label { color: #c0392b; font-weight: 500; }
+    .cat-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cat-overlay {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.65));
+      padding: 18px 8px 8px;
+      color: #fff;
+    }
+    .cat-overlay-name { font-size: 11px; font-weight: 600; }
+    .cat-badge {
+      position: absolute; top: 6px; right: 6px;
+      background: #e74c3c; color: #fff;
+      border-radius: 20px; font-size: 10px; font-weight: 700;
+      padding: 2px 7px;
+    }
+
+    /* 범례 */
+    .legend {
+      display: flex; gap: 16px; justify-content: center;
+      margin-top: 18px; font-size: 12px; color: #999;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* 사진 그리드 */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .photo-item {
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      aspect-ratio: 1;
+      border: none;
+      padding: 0;
+      transition: transform 0.15s;
+    }
+    .photo-item:active { transform: scale(0.96); }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* 빈 상태 */
+    .empty-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 50vh; color: #bbb; gap: 12px;
+    }
+    .empty-state .icon { font-size: 48px; }
+    .empty-state .text { font-size: 14px; }
+    .empty-state .sub { font-size: 12px; }
+
+    /* 하단 버튼 */
+    .bottom-bar {
+      padding: 16px 20px calc(env(safe-area-inset-bottom, 0px) + 16px);
+      border-top: 1px solid #f0ebe3;
+      flex-shrink: 0;
+    }
+    .add-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #2d5016, #4a7c26);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      box-shadow: 0 4px 16px rgba(74,124,38,0.35);
+    }
+    .add-btn:active { opacity: 0.85; }
+
+    /* 상세 페이지 */
+    .detail-page {
+      flex: 1; display: flex; flex-direction: column;
+      background: #000; min-height: 100vh;
+    }
+    .detail-top {
+      position: absolute; top: calc(env(safe-area-inset-top, 20px) + 10px);
+      left: 20px; z-index: 10;
+    }
+    .detail-img-wrap {
+      flex: 1; display: flex; align-items: center;
+      justify-content: center; min-height: 65vh;
+    }
+    .detail-img-wrap img { max-width: 100%; max-height: 70vh; object-fit: contain; }
+    .detail-bottom {
+      background: linear-gradient(transparent, rgba(0,0,0,0.92));
+      padding: 30px 20px calc(env(safe-area-inset-bottom, 0px) + 30px);
+    }
+    .detail-cat { color: #fff; font-size: 12px; opacity: 0.6; margin-bottom: 4px; }
+    .detail-name { color: #fff; font-size: 14px; font-weight: 500; margin-bottom: 18px; }
+    .del-btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #c0392b, #e74c3c);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      box-shadow: 0 4px 16px rgba(231,76,60,0.4);
+    }
+    .del-btn:active { opacity: 0.85; }
+
+    /* 로딩 */
+    .loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 12px; color: #4a7c26;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #e0e0e0;
+      border-top-color: #4a7c26;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 토스트 */
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.75); color: #fff;
+      padding: 10px 20px; border-radius: 20px;
+      font-size: 13px; z-index: 999;
+      opacity: 0; transition: opacity 0.3s;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div style="font-size:14px">로딩 중...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none" />
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDnsJ8XsVTdbiAeLIW1KTjtXcwluHStNfU",
+  authDomain: "xi22-23b08.firebaseapp.com",
+  projectId: "xi22-23b08",
+  storageBucket: "xi22-23b08.firebasestorage.app",
+  messagingSenderId: "559869099524",
+  appId: "1:559869099524:web:f27f93e40ef2a88c593f51"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 상태
+let page = 1; // 1=카테고리, 2=사진목록, 3=상세
+let selectedCat = null;
+let selectedPhoto = null;
+let photosCache = {}; // { catId: [{id, src, name, createdAt}] }
+
+const CATEGORIES = Array.from({length: 13}, (_, i) => ({ id: i+1, name: `카테고리 ${i+1}` }));
+
+// 토스트
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// 이미지 압축 (Base64, 최대 800px, 0.7품질)
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX = 800;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Firestore에서 전체 사진 로드
+async function loadAllPhotos() {
+  try {
+    const snap = await getDocs(collection(db, 'photos'));
+    photosCache = {};
+    snap.forEach(d => {
+      const data = d.data();
+      if (!photosCache[data.catId]) photosCache[data.catId] = [];
+      photosCache[data.catId].push({ id: d.id, ...data });
+    });
+    // 각 카테고리 내에서 시간순 정렬
+    Object.keys(photosCache).forEach(k => {
+      photosCache[k].sort((a,b) => (a.createdAt||0) - (b.createdAt||0));
+    });
+  } catch(e) {
+    showToast('데이터 로드 실패');
+  }
+}
+
+// 사진 저장
+async function savePhoto(catId, base64, name) {
+  const id = 'photo_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  await setDoc(doc(db, 'photos', id), {
+    catId, src: base64, name, createdAt: Date.now()
+  });
+  if (!photosCache[catId]) photosCache[catId] = [];
+  photosCache[catId].push({ id, catId, src: base64, name, createdAt: Date.now() });
+}
+
+// 사진 삭제
+async function deletePhoto(photoId, catId) {
+  await deleteDoc(doc(db, 'photos', photoId));
+  if (photosCache[catId]) {
+    photosCache[catId] = photosCache[catId].filter(p => p.id !== photoId);
+  }
+}
+
+// ──────────────────────────────
+// 렌더링
+// ──────────────────────────────
+function render() {
+  const app = document.getElementById('app');
+  if (page === 1) renderPage1(app);
+  else if (page === 2) renderPage2(app);
+  else if (page === 3) renderPage3(app);
+}
+
+function renderPage1(app) {
+  const totalPhotos = Object.values(photosCache).flat().length;
+  app.innerHTML = `
+    <div class="header">
+      <div class="header-sub">Photo Manager</div>
+      <div class="header-title">카테고리 현황</div>
+      <div class="header-desc">총 ${totalPhotos}장의 사진이 저장되어 있어요</div>
+    </div>
+    <div class="page-content">
+      <div class="cat-grid" id="catGrid"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>사진 있음</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ddd"></div>비어있음</div>
+      </div>
+    </div>
+  `;
+  const grid = document.getElementById('catGrid');
+  CATEGORIES.forEach(cat => {
+    const photos = photosCache[cat.id] || [];
+    const count = photos.length;
+    const thumb = photos[0]?.src;
+    const btn = document.createElement('button');
+    btn.className = 'cat-item ' + (thumb ? 'has-thumb' : count > 0 ? 'has-photos' : 'empty');
+    if (thumb) {
+      btn.innerHTML = `
+        <img class="cat-thumb" src="${thumb}" />
+        <div class="cat-badge">${count}</div>
+        <div class="cat-overlay"><div class="cat-overlay-name">카테고리 ${cat.id}</div></div>
+      `;
+    } else {
+      btn.innerHTML = `
+        <div class="cat-num">${cat.id}</div>
+        <div class="cat-label">${count > 0 ? count+'장' : '비어있음'}</div>
+      `;
+    }
+    btn.onclick = () => { selectedCat = cat; page = 2; render(); };
+    grid.appendChild(btn);
+  });
+}
+
+function renderPage2(app) {
+  const photos = photosCache[selectedCat.id] || [];
+  app.innerHTML = `
+    <div class="header">
+      <button class="back-btn" id="backBtn">← 목록으로</button>
+      <div class="header-title">${selectedCat.name}</div>
+      <div class="header-desc">${photos.length}장의 사진</div>
+    </div>
+    <div class="page-content" id="photoContent"></div>
+    <div class="bottom-bar">
+      <button class="add-btn" id="addBtn"><span style="font-size:20px">+</span> 사진 등록</button>
+    </div>
+  `;
+  document.getElementById('backBtn').onclick = () => { page = 1; render(); };
+  document.getElementById('addBtn').onclick = () => document.getElementById('fileInput').click();
+
+  const content = document.getElementById('photoContent');
+  if (photos.length === 0) {
+    content.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🖼️</div>
+        <div class="text">아직 사진이 없어요</div>
+        <div class="sub">아래 + 버튼으로 추가해보세요</div>
+      </div>`;
+  } else {
+    const grid = document.createElement('div');
+    grid.className = 'photo-grid';
+    photos.forEach(photo => {
+      const btn = document.createElement('button');
+      btn.className = 'photo-item';
+      btn.innerHTML = `<img src="${photo.src}" alt="${photo.name}" loading="lazy" />`;
+      btn.onclick = () => { selectedPhoto = photo; page = 3; render(); };
+      grid.appendChild(btn);
+    });
+    content.appendChild(grid);
+  }
+}
+
+function renderPage3(app) {
+  app.innerHTML = `
+    <div class="detail-page">
+      <div class="detail-top">
+        <button class="back-btn" id="backBtn">← 뒤로</button>
+      </div>
+      <div class="detail-img-wrap">
+        <img src="${selectedPhoto.src}" alt="${selectedPhoto.name}" />
+      </div>
+      <div class="detail-bottom">
+        <div class="detail-cat">${selectedCat?.name}</div>
+        <div class="detail-name">${selectedPhoto.name}</div>
+        <button class="del-btn" id="delBtn">🗑️ 삭제</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('backBtn').onclick = () => { selectedPhoto = null; page = 2; render(); };
+  document.getElementById('delBtn').onclick = async () => {
+    if (!confirm('이 사진을 삭제할까요?')) return;
+    try {
+      await deletePhoto(selectedPhoto.id, selectedCat.id);
+      showToast('삭제되었어요');
+      selectedPhoto = null; page = 2; render();
+    } catch(e) { showToast('삭제 실패'); }
+  };
+}
+
+// 파일 입력 처리
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  showToast('업로드 중...');
+  try {
+    for (const file of files) {
+      const base64 = await compressImage(file);
+      await savePhoto(selectedCat.id, base64, file.name);
+    }
+    showToast(`${files.length}장 저장됐어요 ✅`);
+    render();
+  } catch(err) {
+    showToast('저장 실패: ' + err.message);
+  }
+  e.target.value = '';
+});
+
+// 초기화
+(async () => {
+  await loadAllPhotos();
+  render();
+})();
+</script>
+</body>
+</html>
