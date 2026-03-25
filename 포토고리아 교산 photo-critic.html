@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포토코리아 교산 Photo Critic</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0d0b;
+    --surface: #161512;
+    --surface2: #1e1c18;
+    --surface3: #252320;
+    --gold: #c9a84c;
+    --gold-light: #e8c96a;
+    --gold-dim: #7a6530;
+    --text: #e8e2d5;
+    --text-dim: #9a9080;
+    --text-muted: #5a5448;
+    --accent: #8b3a2a;
+    --green: #4a7c5a;
+    --border: rgba(201,168,76,0.15);
+    --border-bright: rgba(201,168,76,0.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* grain overlay */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:9999; opacity:.4;
+  }
+
+  /* === HEADER === */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 28px 48px;
+    display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top:0; background: rgba(14,13,11,0.92);
+    backdrop-filter: blur(12px); z-index:100;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px; color: var(--gold);
+    letter-spacing: 2px;
+  }
+  .logo span { font-style:italic; color: var(--text-dim); font-size:13px; display:block; letter-spacing:4px; margin-top:2px; font-family:'Noto Sans KR',sans-serif; font-weight:300; }
+
+  /* === HERO === */
+  .hero {
+    padding: 72px 48px 56px;
+    text-align:center;
+    position:relative;
+  }
+  .hero::after {
+    content:'';
+    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:1px; height:48px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+  }
+  .hero-eyebrow {
+    font-size:11px; letter-spacing:6px; color:var(--gold-dim);
+    text-transform:uppercase; margin-bottom:20px;
+  }
+  .hero h1 {
+    font-family:'Playfair Display',serif;
+    font-size:clamp(32px,5vw,56px);
+    font-weight:700; line-height:1.15;
+    color:var(--text);
+    margin-bottom:16px;
+  }
+  .hero h1 em { font-style:italic; color:var(--gold); }
+  .hero p { color:var(--text-dim); font-size:15px; line-height:1.8; max-width:480px; margin:0 auto; }
+
+  /* === TABS === */
+  .tabs {
+    display:flex; justify-content:center; gap:0;
+    margin: 64px 48px 0;
+  }
+  .tab-btn {
+    flex:1; max-width:280px;
+    padding: 18px 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family:'Noto Serif KR',serif;
+    font-size:15px; cursor:pointer;
+    transition: all .25s;
+    position:relative;
+  }
+  .tab-btn:first-child { border-radius: 2px 0 0 2px; border-right:none; }
+  .tab-btn:last-child  { border-radius: 0 2px 2px 0; }
+  .tab-btn .tab-num {
+    display:block; font-size:10px; letter-spacing:3px;
+    color:var(--gold-dim); margin-bottom:4px; font-family:'Noto Sans KR',sans-serif;
+  }
+  .tab-btn.active {
+    background: var(--surface2);
+    border-color: var(--gold);
+    color: var(--text);
+  }
+  .tab-btn.active::after {
+    content:'';
+    position:absolute; bottom:-1px; left:0; right:0;
+    height:2px; background:var(--gold);
+  }
+  .tab-btn:hover:not(.active) { background:var(--surface2); color:var(--text); }
+
+  /* === PANELS === */
+  .panels { padding: 48px; max-width:960px; margin:0 auto; }
+  .panel { display:none; animation: fadeUp .4s ease; }
+  .panel.active { display:block; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  /* === UPLOAD ZONE === */
+  .upload-zone {
+    border: 1px dashed var(--border-bright);
+    border-radius:4px;
+    padding: 56px 32px;
+    text-align:center;
+    cursor:pointer;
+    transition: all .25s;
+    background: var(--surface);
+    position:relative; overflow:hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color:var(--gold); background:var(--surface2); }
+  .upload-zone .icon {
+    font-size:40px; margin-bottom:16px; display:block;
+    filter: saturate(0); opacity:.6;
+    transition: all .25s;
+  }
+  .upload-zone:hover .icon { filter:none; opacity:1; }
+  .upload-zone h3 { font-family:'Noto Serif KR',serif; font-size:17px; margin-bottom:8px; }
+  .upload-zone p  { color:var(--text-dim); font-size:13px; line-height:1.7; }
+  .upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  /* multi upload grid */
+  .upload-grid {
+    display:grid; grid-template-columns:repeat(5,1fr); gap:12px;
+    margin-top:24px;
+  }
+  .upload-slot {
+    aspect-ratio:1; border:1px dashed var(--border-bright);
+    border-radius:3px; background:var(--surface);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    cursor:pointer; transition:all .2s; position:relative; overflow:hidden;
+    color:var(--text-muted); font-size:12px; gap:6px;
+  }
+  .upload-slot:hover { border-color:var(--gold); color:var(--text-dim); }
+  .upload-slot .slot-num { font-size:10px; letter-spacing:2px; }
+  .upload-slot img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .upload-slot .remove-slot {
+    position:absolute; top:4px; right:4px;
+    background:rgba(0,0,0,.7); border:none; color:#fff;
+    width:20px; height:20px; border-radius:50%; cursor:pointer;
+    font-size:11px; display:none; align-items:center; justify-content:center;
+  }
+  .upload-slot:hover .remove-slot { display:flex; }
+  .upload-slot input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  /* === PREVIEW === */
+  .preview-wrap { position:relative; margin-bottom:24px; }
+  .preview-img {
+    width:100%; max-height:480px; object-fit:contain;
+    border-radius:3px; display:block;
+    border:1px solid var(--border);
+  }
+  .preview-clear {
+    position:absolute; top:12px; right:12px;
+    background:rgba(0,0,0,.7); border:1px solid var(--border);
+    color:var(--text-dim); padding:6px 12px;
+    border-radius:2px; cursor:pointer; font-size:12px;
+    transition:all .2s;
+  }
+  .preview-clear:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* === CTA BUTTON === */
+  .cta-btn {
+    width:100%; padding:18px;
+    background: transparent;
+    border:1px solid var(--gold);
+    color:var(--gold);
+    font-family:'Noto Serif KR',serif;
+    font-size:16px; cursor:pointer;
+    letter-spacing:2px;
+    transition:all .25s;
+    position:relative; overflow:hidden;
+    margin-top:16px;
+  }
+  .cta-btn::before {
+    content:'';
+    position:absolute; inset:0;
+    background:var(--gold);
+    transform:translateX(-100%);
+    transition:transform .3s;
+    z-index:-1;
+  }
+  .cta-btn:hover { color:var(--bg); }
+  .cta-btn:hover::before { transform:translateX(0); }
+  .cta-btn:disabled { opacity:.4; cursor:not-allowed; }
+  .cta-btn:disabled::before { display:none; }
+  .cta-btn:disabled:hover { color:var(--gold); }
+
+  /* === LOADING === */
+  .loading {
+    text-align:center; padding:64px 0; display:none;
+  }
+  .loading.show { display:block; }
+  .loading-ring {
+    width:48px; height:48px; margin:0 auto 24px;
+    border:1px solid var(--border-bright);
+    border-top-color:var(--gold);
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .loading p { color:var(--text-dim); font-size:14px; letter-spacing:1px; }
+  .loading .dots::after {
+    content:'';
+    animation: dots 1.5s infinite;
+  }
+  @keyframes dots {
+    0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'}
+  }
+
+  /* === RESULTS === */
+  .result-block { display:none; animation:fadeUp .5s ease; }
+  .result-block.show { display:block; }
+
+  .result-header {
+    display:flex; align-items:center; gap:16px;
+    padding:24px 0; margin-bottom:32px;
+    border-bottom:1px solid var(--border);
+  }
+  .result-header .photo-thumb {
+    width:72px; height:72px; object-fit:cover;
+    border:1px solid var(--border-bright); border-radius:2px;
+  }
+  .result-header h2 { font-family:'Playfair Display',serif; font-size:20px; }
+  .result-header p  { color:var(--text-dim); font-size:13px; margin-top:4px; }
+
+  /* criteria grid */
+  .criteria-grid {
+    display:grid; grid-template-columns:1fr 1fr; gap:16px;
+    margin-bottom:32px;
+  }
+  @media(max-width:600px){ .criteria-grid{grid-template-columns:1fr;} }
+  .criterion-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:3px; padding:20px;
+    transition:border-color .2s;
+  }
+  .criterion-card:hover { border-color:var(--border-bright); }
+  .criterion-top {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:10px;
+  }
+  .criterion-name { font-size:12px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; }
+  .criterion-score { font-family:'Playfair Display',serif; font-size:24px; color:var(--text); }
+  .criterion-score span { font-size:12px; color:var(--text-muted); font-family:'Noto Sans KR',sans-serif; }
+  .score-bar { height:2px; background:var(--surface3); border-radius:1px; margin-bottom:12px; }
+  .score-fill { height:100%; border-radius:1px; background:linear-gradient(to right,var(--gold-dim),var(--gold)); transition:width 1s ease; }
+  .criterion-text { font-size:13px; line-height:1.8; color:var(--text-dim); }
+
+  /* overall section */
+  .overall-section { background:var(--surface); border:1px solid var(--border-bright); border-radius:3px; padding:32px; margin-bottom:24px; }
+  .overall-label { font-size:10px; letter-spacing:4px; color:var(--gold-dim); text-transform:uppercase; margin-bottom:16px; }
+  .overall-text { font-family:'Noto Serif KR',serif; font-size:15px; line-height:2; color:var(--text); }
+
+  /* strengths/weaknesses */
+  .sw-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:32px; }
+  @media(max-width:600px){ .sw-grid{grid-template-columns:1fr;} }
+  .sw-card { background:var(--surface); border-radius:3px; padding:24px; }
+  .sw-card.strength { border-left:2px solid var(--green); }
+  .sw-card.weakness  { border-left:2px solid var(--accent); }
+  .sw-card h4 { font-size:11px; letter-spacing:3px; text-transform:uppercase; margin-bottom:16px; }
+  .sw-card.strength h4 { color: #6aad80; }
+  .sw-card.weakness  h4 { color: #c0604e; }
+  .sw-card ul { list-style:none; }
+  .sw-card ul li { font-size:13px; line-height:1.8; color:var(--text-dim); padding:6px 0; border-bottom:1px solid var(--border); }
+  .sw-card ul li:last-child { border:none; }
+  .sw-card ul li::before { content:'— '; color:var(--text-muted); }
+
+  /* advice */
+  .advice-section { border:1px solid var(--border); border-radius:3px; padding:28px; }
+  .advice-section h4 { font-size:11px; letter-spacing:3px; color:var(--gold); text-transform:uppercase; margin-bottom:16px; }
+  .advice-section p  { font-size:14px; line-height:2; color:var(--text-dim); }
+
+  /* === LEVEL === */
+  .level-display {
+    text-align:center; padding:48px 0 32px;
+  }
+  .level-number {
+    font-family:'Playfair Display',serif;
+    font-size:clamp(72px,12vw,120px);
+    line-height:1; color:var(--gold);
+    position:relative; display:inline-block;
+  }
+  .level-number::before { content:'Lv.'; font-size:0.25em; color:var(--gold-dim); vertical-align:super; }
+  .level-title { font-family:'Noto Serif KR',serif; font-size:22px; margin-top:8px; color:var(--text); }
+  .level-desc { color:var(--text-dim); font-size:14px; margin-top:8px; }
+
+  .level-bar-wrap {
+    margin:32px 0;
+  }
+  .level-bar-labels {
+    display:flex; justify-content:space-between;
+    font-size:10px; color:var(--text-muted); letter-spacing:1px;
+    margin-bottom:8px;
+  }
+  .level-bar {
+    height:6px; background:var(--surface3); border-radius:3px;
+    position:relative; overflow:visible;
+  }
+  .level-bar-fill {
+    height:100%; border-radius:3px;
+    background:linear-gradient(to right, #4a3a1a, var(--gold));
+    transition:width 1.2s cubic-bezier(0.16,1,0.3,1);
+  }
+  .level-marker {
+    position:absolute; top:-5px;
+    width:16px; height:16px; border-radius:50%;
+    background:var(--gold); border:2px solid var(--bg);
+    transform:translateX(-50%);
+    box-shadow:0 0 12px var(--gold);
+    transition:left 1.2s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  /* === NOTICE === */
+  .notice {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:3px; padding:20px 24px;
+    font-size:13px; color:var(--text-dim); line-height:1.7;
+    margin-bottom:24px;
+  }
+  .notice strong { color:var(--gold); }
+
+  /* === RESET BTN === */
+  .reset-btn {
+    background:none; border:1px solid var(--border);
+    color:var(--text-muted); padding:10px 20px;
+    border-radius:2px; cursor:pointer; font-size:12px;
+    letter-spacing:1px; transition:all .2s; margin-top:24px;
+  }
+  .reset-btn:hover { border-color:var(--border-bright); color:var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    포토코리아 교산 Photo Critic
+    <span>AI 사진 평가 시스템</span>
+  </div>
+</header>
+
+<section class="hero">
+  <p class="hero-eyebrow">Professional Photo Assessment</p>
+  <h1>당신의 사진,<br><em>전문가의 시선</em>으로</h1>
+  <p>AI 전문 평론가가 당신의 사진을 다각도로 분석하고<br>성장을 위한 맞춤 피드백을 제공합니다</p>
+</section>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab(1)">
+    <span class="tab-num">MODE 01</span>
+    개별 사진 평가
+  </button>
+  <button class="tab-btn" onclick="switchTab(2)">
+    <span class="tab-num">MODE 02</span>
+    실력 레벨 평가
+  </button>
+</div>
+
+<div class="panels">
+
+  <!-- ===== PANEL 1 ===== -->
+  <div class="panel active" id="panel1">
+    <div class="notice">
+      <strong>개별 사진 평가</strong> — 사진 한 장을 업로드하면 전문가 관점에서 독창성, 구도, 예술성, 색감, 기술력 등 5가지 기준으로 상세 평가해 드립니다.
+    </div>
+
+    <div id="upload1" class="upload-zone" onclick="document.getElementById('fileInput1').click()">
+      <span class="icon">📷</span>
+      <h3>사진을 업로드하세요</h3>
+      <p>클릭하거나 사진을 드래그해서 올려주세요<br>JPG, PNG, WEBP 지원</p>
+      <input type="file" id="fileInput1" accept="image/*" onchange="handleSingleUpload(this)">
+    </div>
+
+    <div id="preview1" class="preview-wrap" style="display:none">
+      <img id="previewImg1" class="preview-img" src="" alt="preview">
+      <button class="preview-clear" onclick="clearSingle()">✕ 다시 선택</button>
+    </div>
+
+    <button class="cta-btn" id="evalBtn1" onclick="evaluateSingle()" disabled>
+      전문가 평가 시작 →
+    </button>
+
+    <div class="loading" id="loading1">
+      <div class="loading-ring"></div>
+      <p>전문가가 사진을 분석하고 있습니다<span class="dots"></span></p>
+    </div>
+
+    <div class="result-block" id="result1"></div>
+  </div>
+
+  <!-- ===== PANEL 2 ===== -->
+  <div class="panel" id="panel2">
+    <div class="notice">
+      <strong>실력 레벨 평가</strong> — 최근 찍은 <strong>대표 작품 5장</strong>을 올려주세요. 종합적으로 분석하여 1~10 레벨 중 현재 실력 수준을 진단하고, 다음 단계로 성장하기 위한 맞춤 조언을 드립니다.
+    </div>
+
+    <div class="upload-grid" id="uploadGrid">
+      <!-- 5 slots rendered by JS -->
+    </div>
+
+    <button class="cta-btn" id="evalBtn2" onclick="evaluateLevel()" disabled style="margin-top:24px">
+      실력 레벨 진단 시작 →
+    </button>
+
+    <div class="loading" id="loading2">
+      <div class="loading-ring"></div>
+      <p>5장의 작품을 종합 분석 중입니다<span class="dots"></span></p>
+    </div>
+
+    <div class="result-block" id="result2"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────
+let singleImageB64 = null;
+const slotImages = [null,null,null,null,null]; // b64 strings
+
+// ─── Tab switch ───────────────────────────────────
+function switchTab(n) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n-1));
+}
+
+// ─── Single upload ────────────────────────────────
+function handleSingleUpload(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    singleImageB64 = e.target.result.split(',')[1];
+    document.getElementById('previewImg1').src = e.target.result;
+    document.getElementById('upload1').style.display = 'none';
+    document.getElementById('preview1').style.display = 'block';
+    document.getElementById('evalBtn1').disabled = false;
+    document.getElementById('result1').classList.remove('show');
+    document.getElementById('result1').innerHTML = '';
+  };
+  reader.readAsDataURL(file);
+}
+function clearSingle() {
+  singleImageB64 = null;
+  document.getElementById('upload1').style.display = 'block';
+  document.getElementById('preview1').style.display = 'none';
+  document.getElementById('evalBtn1').disabled = true;
+  document.getElementById('fileInput1').value = '';
+}
+
+// ─── Multi slots ──────────────────────────────────
+function buildSlots() {
+  const grid = document.getElementById('uploadGrid');
+  grid.innerHTML = '';
+  for(let i=0;i<5;i++) {
+    const slot = document.createElement('div');
+    slot.className = 'upload-slot';
+    slot.id = `slot${i}`;
+    if(slotImages[i]) {
+      slot.innerHTML = `<img src="data:image/jpeg;base64,${slotImages[i]}">
+        <button class="remove-slot" onclick="removeSlot(event,${i})">✕</button>`;
+    } else {
+      slot.innerHTML = `<span style="font-size:22px">+</span><span class="slot-num">작품 ${i+1}</span>
+        <input type="file" accept="image/*" onchange="handleSlot(this,${i})">`;
+    }
+    grid.appendChild(slot);
+  }
+  const filled = slotImages.filter(Boolean).length;
+  document.getElementById('evalBtn2').disabled = filled < 5;
+}
+function handleSlot(input, i) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    slotImages[i] = e.target.result.split(',')[1];
+    buildSlots();
+  };
+  reader.readAsDataURL(file);
+}
+function removeSlot(e, i) {
+  e.stopPropagation();
+  slotImages[i] = null;
+  buildSlots();
+}
+buildSlots();
+
+// ─── Helpers ──────────────────────────────────────
+function scoreBar(score) {
+  return `<div class="score-bar"><div class="score-fill" style="width:0%" data-target="${score*10}%"></div></div>`;
+}
+function animateBars() {
+  setTimeout(()=>{
+    document.querySelectorAll('.score-fill').forEach(el=>{
+      el.style.width = el.dataset.target;
+    });
+    document.querySelectorAll('.level-bar-fill, .level-marker').forEach(el=>{
+      const t = el.dataset.target;
+      if(t) { el.style.width = t; el.style.left = t; }
+    });
+  }, 100);
+}
+
+// ─── API call ─────────────────────────────────────
+async function callClaude(messages, system) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      system,
+      messages
+    })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  return data.content.map(c=>c.text||'').join('');
+}
+
+// ─── Evaluate single ─────────────────────────────
+async function evaluateSingle() {
+  if(!singleImageB64) return;
+  document.getElementById('evalBtn1').disabled = true;
+  document.getElementById('loading1').classList.add('show');
+  document.getElementById('result1').classList.remove('show');
+
+  const system = `당신은 국제 사진 공모전 심사위원 경력의 전문 사진 평론가입니다.
+사용자가 올린 사진을 아래 JSON 형식으로만 응답하세요. 다른 텍스트는 절대 포함하지 마세요.
+
+{
+  "originality": {"score": 1-10, "comment": "평가 멘트"},
+  "composition": {"score": 1-10, "comment": "평가 멘트"},
+  "artistry":    {"score": 1-10, "comment": "평가 멘트"},
+  "color":       {"score": 1-10, "comment": "평가 멘트"},
+  "technique":   {"score": 1-10, "comment": "평가 멘트"},
+  "overall": "전반적인 종합 평가 (3-4문장, 따뜻하면서도 전문적인 어조)",
+  "strengths": ["장점1", "장점2", "장점3"],
+  "weaknesses": ["개선점1", "개선점2", "개선점3"],
+  "advice": "구체적인 성장 조언 (2-3문장)"
+}
+
+모든 텍스트는 한국어로 작성하고, 구체적이고 통찰력 있는 평가를 제공하세요.`;
+
+  try {
+    const raw = await callClaude([{
+      role:'user',
+      content:[
+        {type:'image', source:{type:'base64', media_type:'image/jpeg', data:singleImageB64}},
+        {type:'text', text:'이 사진을 전문가 관점에서 평가해 주세요.'}
+      ]
+    }], system);
+
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const d = JSON.parse(clean);
+
+    const criteriaMap = [
+      {key:'originality', label:'독창성'},
+      {key:'composition', label:'구도'},
+      {key:'artistry',    label:'예술성'},
+      {key:'color',       label:'색감'},
+      {key:'technique',   label:'기술력'},
+    ];
+
+    const cards = criteriaMap.map(({key,label})=>`
+      <div class="criterion-card">
+        <div class="criterion-top">
+          <span class="criterion-name">${label}</span>
+          <span class="criterion-score">${d[key].score}<span>/10</span></span>
+        </div>
+        ${scoreBar(d[key].score)}
+        <p class="criterion-text">${d[key].comment}</p>
+      </div>`).join('');
+
+    const strengths = d.strengths.map(s=>`<li>${s}</li>`).join('');
+    const weaknesses = d.weaknesses.map(w=>`<li>${w}</li>`).join('');
+
+    document.getElementById('result1').innerHTML = `
+      <div class="result-header">
+        <img class="photo-thumb" src="${document.getElementById('previewImg1').src}">
+        <div>
+          <h2>평가 완료</h2>
+          <p>5개 기준 · 전문가 종합 의견 · 맞춤 조언</p>
+        </div>
+      </div>
+      <div class="criteria-grid">${cards}</div>
+      <div class="overall-section">
+        <p class="overall-label">종합 평가</p>
+        <p class="overall-text">${d.overall}</p>
+      </div>
+      <div class="sw-grid">
+        <div class="sw-card strength"><h4>✦ 장점</h4><ul>${strengths}</ul></div>
+        <div class="sw-card weakness"><h4>✦ 개선점</h4><ul>${weaknesses}</ul></div>
+      </div>
+      <div class="advice-section">
+        <h4>전문가 조언</h4>
+        <p>${d.advice}</p>
+      </div>
+      <button class="reset-btn" onclick="clearSingle()">← 다른 사진 평가하기</button>`;
+
+    document.getElementById('result1').classList.add('show');
+    animateBars();
+  } catch(e) {
+    document.getElementById('result1').innerHTML = `<div class="notice" style="border-color:#c0604e">평가 중 오류가 발생했습니다. 다시 시도해 주세요.<br><small>${e.message}</small></div>`;
+    document.getElementById('result1').classList.add('show');
+    document.getElementById('evalBtn1').disabled = false;
+  }
+  document.getElementById('loading1').classList.remove('show');
+}
+
+// ─── Level evaluation ─────────────────────────────
+async function evaluateLevel() {
+  if(slotImages.filter(Boolean).length < 5) return;
+  document.getElementById('evalBtn2').disabled = true;
+  document.getElementById('loading2').classList.add('show');
+  document.getElementById('result2').classList.remove('show');
+
+  const system = `당신은 20년 경력의 사진 교육 전문가이자 갤러리 큐레이터입니다.
+사용자가 제공한 5장의 사진을 종합 분석하여 아래 JSON 형식으로만 응답하세요.
+
+레벨 기준:
+1-2: 입문자 (기본 조작 학습 단계)
+3-4: 초급자 (기본기 습득 단계)
+5-6: 중급자 (개성 발현 단계)
+7-8: 고급자 (예술적 완성도 추구)
+9-10: 전문가 (독자적 세계관 구현)
+
+{
+  "level": 1-10 (숫자),
+  "title": "레벨 제목 (예: '감각적 중급자', '빛을 읽는 사진가' 등 창의적으로)",
+  "level_desc": "이 레벨에 대한 설명 (1-2문장)",
+  "series_analysis": "5장을 연작으로 보았을 때의 종합 분석 (3-4문장, 패턴, 일관성, 개성 등)",
+  "strengths": ["전반적 장점1", "전반적 장점2", "전반적 장점3"],
+  "growth_areas": ["성장 필요 영역1", "성장 필요 영역2", "성장 필요 영역3"],
+  "next_level_advice": "다음 레벨로 올라가기 위한 구체적 실천 방안 (3-4문장)",
+  "style_signature": "이 사진가만의 스타일 특징 한 줄 요약"
+}
+
+모든 텍스트는 한국어로. 따뜻하고 건설적인 어조로 작성하세요.`;
+
+  const content = slotImages.map((b64,i)=>({
+    type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64}
+  }));
+  content.push({type:'text', text:'이 5장의 사진들을 종합적으로 분석하여 작가의 실력 레벨을 평가해 주세요.'});
+
+  try {
+    const raw = await callClaude([{role:'user', content}], system);
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const d = JSON.parse(clean);
+
+    const pct = ((d.level - 1) / 9 * 100).toFixed(1) + '%';
+    const strengths = d.strengths.map(s=>`<li>${s}</li>`).join('');
+    const growth = d.growth_areas.map(g=>`<li>${g}</li>`).join('');
+
+    // thumbnail strip
+    const thumbs = slotImages.map(b64=>`<img src="data:image/jpeg;base64,${b64}" style="width:calc(20% - 8px);aspect-ratio:1;object-fit:cover;border-radius:2px;border:1px solid var(--border)">`).join('');
+
+    document.getElementById('result2').innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px">${thumbs}</div>
+
+      <div class="level-display">
+        <div class="level-number">${d.level}</div>
+        <div class="level-title">${d.title}</div>
+        <div class="level-desc">${d.level_desc}</div>
+      </div>
+
+      <div class="level-bar-wrap">
+        <div class="level-bar-labels"><span>Lv.1 입문</span><span>Lv.5 중급</span><span>Lv.10 전문가</span></div>
+        <div class="level-bar">
+          <div class="level-bar-fill" style="width:0%" data-target="${pct}"></div>
+          <div class="level-marker" style="left:0%" data-target="${pct}"></div>
+        </div>
+      </div>
+
+      <div class="overall-section" style="margin-bottom:24px">
+        <p class="overall-label">✦ 스타일 시그니처</p>
+        <p class="overall-text" style="font-style:italic;font-size:17px">"${d.style_signature}"</p>
+      </div>
+
+      <div class="overall-section">
+        <p class="overall-label">연작 종합 분석</p>
+        <p class="overall-text">${d.series_analysis}</p>
+      </div>
+
+      <div class="sw-grid">
+        <div class="sw-card strength"><h4>✦ 두드러진 강점</h4><ul>${strengths}</ul></div>
+        <div class="sw-card weakness"><h4>✦ 성장 영역</h4><ul>${growth}</ul></div>
+      </div>
+
+      <div class="advice-section">
+        <h4>다음 레벨로 가는 길</h4>
+        <p>${d.next_level_advice}</p>
+      </div>
+
+      <button class="reset-btn" onclick="resetLevel()">← 다시 평가하기</button>`;
+
+    document.getElementById('result2').classList.add('show');
+    animateBars();
+  } catch(e) {
+    document.getElementById('result2').innerHTML = `<div class="notice" style="border-color:#c0604e">평가 중 오류가 발생했습니다. 다시 시도해 주세요.<br><small>${e.message}</small></div>`;
+    document.getElementById('result2').classList.add('show');
+    document.getElementById('evalBtn2').disabled = false;
+  }
+  document.getElementById('loading2').classList.remove('show');
+}
+
+function resetLevel() {
+  for(let i=0;i<5;i++) slotImages[i]=null;
+  buildSlots();
+  document.getElementById('result2').classList.remove('show');
+  document.getElementById('result2').innerHTML='';
+}
+
+// drag & drop for single upload
+const zone = document.getElementById('upload1');
+zone.addEventListener('dragover', e=>{e.preventDefault();zone.classList.add('drag');});
+zone.addEventListener('dragleave', ()=>zone.classList.remove('drag'));
+zone.addEventListener('drop', e=>{
+  e.preventDefault(); zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if(file && file.type.startsWith('image/')) {
+    const input = document.getElementById('fileInput1');
+    const dt = new DataTransfer(); dt.items.add(file);
+    input.files = dt.files;
+    handleSingleUpload(input);
+  }
+});
+</script>
+</body>
+</html>
