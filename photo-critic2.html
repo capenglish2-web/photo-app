@@ -590,7 +590,7 @@ window.addEventListener('DOMContentLoaded', () => {
 async function callClaude(messages, system) {
   const key = getKey();
   if (!key) throw new Error('API 키를 먼저 입력하고 저장해주세요.');
-  const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + key;
+  const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key;
   const parts = [];
   parts.push({ text: system });
   for (const msg of messages) {
